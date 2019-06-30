@@ -1,2 +1,2 @@
 # ML-Programs
-Implementation of various machine learning algorithms. 
+Implementation of a few machine learning algorithms, primarily for my own understanding.
