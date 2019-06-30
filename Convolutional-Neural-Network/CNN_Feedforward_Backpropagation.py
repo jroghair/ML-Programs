@@ -44,8 +44,8 @@ def convolution_feedforward_layer(X_prev, weights, bias, hparam): #stride, paddi
         for row in range(n_row):
             for col in range(n_col):
                 for d in range(n_depth):
-                    cs, ce, rs, re = (stride*row), (stride*row+f), (stride*col), (stride*col+f)
-                    x_slice_prev = X_prev_padded[i,cs:ce, rs:re, :]
+                    rs, re, cs, ce = (stride*row), (stride*row+f), (stride*col), (stride*col+f)
+                    x_slice_prev = X_prev_padded[i, rs:re, cs:ce, :]
                     out[i, row, col, d] = perform_convolution(x_slice_prev, weights[:,:,:,d], bias[:,:,:,d])
     delta = (X_prev, weights, bias, hparam) 
     return out, delta 
@@ -64,16 +64,16 @@ def pooling_forward_layer(X_prev, hparam, method="max"):
         for row in range(n_row):
             for col in range(n_col):
                 for d in range(n_depth):
-                    cs, ce, rs, re = (stride*row), (stride*row+f), (stride*col), (stride*col+f)
+                    rs, re, cs, ce = (stride*row), (stride*row+f), (stride*col), (stride*col+f)
                     if method == "max":
-                            out[i, row, col, d] = np.max(X_prev[i, cs:ce, rs:re, d])
+                            out[i, row, col, d] = np.max(X_prev[i, rs:re, cs:ce, d])
                     else:
-                        out[i, row, col, d] = np.mean(X_prev[i, cs:ce, rs:re, d])
+                        out[i, row, col, d] = np.mean(X_prev[i, rs:re, cs:ce, d])
     delta = (X_prev, hparam) 
     return out, delta           
                     
                     
-def convolution_backpropogation(dJ, delta):
+def convolution_backpropogation_layer(dJ, delta):
     (X_prev, weights, bias, hparam) = delta
     (m, n_row_prev, n_col_prev, n_depth_prev) = X_prev.shape
     (f, f, n_depth_prev, n_depth) = weights.shape
@@ -97,18 +97,42 @@ def convolution_backpropogation(dJ, delta):
         for row in range(n_row):
             for col in range(n_col):
                 for d in range(n_depth):
-                    cs, ce, rs, re = (stride*row), (stride*row+f), (stride*col), (stride*col+f)    
-                    x_slice = X_prev_padded[i, cs:ce, rs:re, :]
-                    dX_prev_padded[i, cs:ce, rs:re,:] += weights[:, :, :, d]*dJ[i, row, col, d]
+                    rs, re, cs, ce = (stride*row), (stride*row+f), (stride*col), (stride*col+f)    
+                    x_slice = X_prev_padded[i, rs:re, cs:ce, :]
+                    dX_prev_padded[i, rs:re, cs:ce,:] += weights[:, :, :, d]*dJ[i, row, col, d]
                     dWeights[:, :, :, d] += x_slice*dJ[i, row, col, d]
                     dbias[:, :, :, d] += dJ[i, row, col, d]
         dX_prev[i,:,:,:] = dX_prev_padded[i, padding:-padding, padding:-padding, :]
     return dX_prev, dWeights, dbias
 
 
-                    
-                    
-                    
-                    
-                    
+def pooling_backpropogation_layer(dX, delta, method="max"):                   
+    (X_prev, hparam) = delta
+    
+    stride, f = hparam["stride"] , hparam["f"]
+    
+    m, n_row_prev, n_col_prev, n_depth_prev = X_prev.shape
+    m, n_row, n_col, n_depth = dX.shape
+    
+    #output dimensions
+    dX_prev = np.zeros_like(X_prev)
+    
+    for i in range(m):
+        for row in range(n_row):
+            for col in range(n_col):
+                for d in range(n_depth):
+                    rs, re, cs, ce = (stride*row), (stride*row+f), (stride*col), (stride*col+f)    
+                    if method == "max":
+                        x_prev_slice = X_prev[i, rs:re, cs:ce, d]
+                        largest = (x_prev_slice == np.max(x_prev_slice))
+                        dX_prev[i, rs:re, cs:ce, d] += largest*dX[i, rs, cs, d]
+                    elif method == "average":
+                        dx = dX[i,rs,cs,d]
+                        avg = np.ones((f,f))*(dx/(f*f))
+                        dX_prev[i,  rs:re, cs:ce, d] += avg
+    return dX_prev
+
+    
+          
+    
                     
