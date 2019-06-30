@@ -102,29 +102,10 @@ def convolution_backpropogation(dJ, delta):
                     dX_prev_padded[i, cs:ce, rs:re,:] += weights[:, :, :, d]*dJ[i, row, col, d]
                     dWeights[:, :, :, d] += x_slice*dJ[i, row, col, d]
                     dbias[:, :, :, d] += dJ[i, row, col, d]
-    dX_prev[i,:,:,:] = dX_prev_padded[i, padding:-padding, padding:-padding, :]
+        dX_prev[i,:,:,:] = dX_prev_padded[i, padding:-padding, padding:-padding, :]
     return dX_prev, dWeights, dbias
 
 
-np.random.seed(1)
-A_prev = np.random.randn(10,4,4,3)
-W = np.random.randn(2,2,3,8)
-b = np.random.randn(1,1,1,8)
-hparameters = {"padding" : 2,
-               "stride": 2}
-
-Z, cache_conv = convolution_feedforward_layer(A_prev, W, b, hparameters)
-print("Z's mean =", np.mean(Z))
-print("Z[3,2,1] =", Z[3,2,1])
-print("cache_conv[0][1][2][3] =", cache_conv[0][1][2][3])
-
-np.random.seed(1)
-dA, dW, db = convolution_backpropogation(Z, cache_conv)
-print("dA_mean =", np.mean(dA))
-print("dW_mean =", np.mean(dW))
-print("db_mean =", np.mean(db))                 
-    
-                    
                     
                     
                     
